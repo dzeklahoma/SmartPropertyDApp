@@ -9,6 +9,7 @@ interface PropertyListProps {
   onSell?: (property: PropertyCardProps["property"]) => void;
   onVerify?: (property: PropertyCardProps["property"]) => void;
   onEdit?: (property: PropertyCardProps["property"]) => void;
+  onRemoveFromSale?: (property: PropertyCardProps["property"]) => void;
   showActions?: boolean;
   isLoading?: boolean;
   emptyMessage?: string;
@@ -22,6 +23,7 @@ const PropertyList: React.FC<PropertyListProps> = ({
   onSell,
   onVerify,
   onEdit,
+  onRemoveFromSale,
   showActions = true,
   isLoading = false,
   emptyMessage = "No properties found",
@@ -46,6 +48,7 @@ const PropertyList: React.FC<PropertyListProps> = ({
             onVerify={onVerify}
             onEdit={onEdit}
             onViewDetails={onViewDetails}
+            onRemoveFromSale={onRemoveFromSale}
           />
         ))}
       </div>

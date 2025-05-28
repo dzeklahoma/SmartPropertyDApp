@@ -64,16 +64,12 @@ const Dashboard: React.FC = () => {
         .getPropertiesByOwner(account)
         .call();
 
-      console.log("Property IDs for account:", account, propertyIds);
-
       const propertiesData: PropertyData[] = [];
 
       for (const id of propertyIds) {
         const propertyAddress = await propertyFactoryContract.methods
           .getPropertyById(id)
           .call();
-
-        console.log(`ID ${id} => Address: ${propertyAddress}`);
 
         if (
           propertyAddress &&
@@ -85,8 +81,6 @@ const Dashboard: React.FC = () => {
             const details = await propertyContract.methods
               .getPropertyDetails()
               .call();
-
-            console.log("Details:", details);
 
             propertiesData.push({
               id: parseInt(details[0]),
@@ -221,6 +215,28 @@ const Dashboard: React.FC = () => {
       );
     }
   };
+  const handleRemoveFromSale = async (property: PropertyData) => {
+    try {
+      if (!property || !account) {
+        throw new Error("Property not found or wallet not connected");
+      }
+
+      const propertyContract = getPropertyContract(property.contractAddress);
+      if (!propertyContract) {
+        throw new Error("Failed to get property contract");
+      }
+
+      await propertyContract.methods.removeFromSale().send({ from: account });
+
+      await fetchMyProperties();
+    } catch (error) {
+      console.error("Error removing property from sale:", error);
+      alert(
+        "Failed to remove property from sale: " +
+          (error instanceof Error ? error.message : "An unknown error occurred")
+      );
+    }
+  };
 
   const handleViewDetails = (property: PropertyData) => {
     navigate(`/property/${property.id}`);
@@ -302,6 +318,7 @@ const Dashboard: React.FC = () => {
           onViewDetails={handleViewDetails}
           onEdit={handleEditClick}
           onSell={handleSellClick}
+          onRemoveFromSale={handleRemoveFromSale}
           showActions={true}
           isLoading={isLoading}
           emptyMessage="You don't have any registered properties yet. Use the 'Register Property' button to add one."

@@ -6,12 +6,17 @@ import {
   DollarSign,
   Eye,
   Edit,
+  XCircle,
 } from "lucide-react";
 import { PropertyCardProps } from "../../types/property.types";
 import { formatEther } from "ethers/lib/utils";
 import { useWeb3 } from "../../context/Web3Context";
 
-const PropertyCard: React.FC<PropertyCardProps> = ({
+interface PropertyCardExtendedProps extends PropertyCardProps {
+  onRemoveFromSale?: (property: PropertyCardProps["property"]) => void;
+}
+
+const PropertyCard: React.FC<PropertyCardExtendedProps> = ({
   property,
   showActions = true,
   onViewDetails,
@@ -19,21 +24,19 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   onVerify,
   onSell,
   onEdit,
+  onRemoveFromSale,
 }) => {
   const { account } = useWeb3(); // Get the current user's address from context
 
-  // Property image placeholder - in a real app this would come from the property data
   const propertyImage =
     "https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=600";
 
-  // Format owner address for display
   const formatAddress = (address: string) => {
     return `${address.substring(0, 6)}...${address.substring(
       address.length - 4
     )}`;
   };
 
-  // Format price from wei to ETH
   const formattedPrice = property.price
     ? `${formatEther(property.price)} ETH`
     : "Not for sale";
@@ -134,6 +137,18 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
                   className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-1.5 px-3 rounded flex items-center justify-center transition-colors"
                 >
                   <DollarSign size={14} className="mr-1.5" /> Buy Now
+                </button>
+              )}
+
+            {/* New Remove from Sale button */}
+            {property.isVerified &&
+              property.isForSale &&
+              property.owner === account && (
+                <button
+                  onClick={() => onRemoveFromSale?.(property)}
+                  className="flex-1 bg-red-100 hover:bg-red-200 text-red-800 text-sm py-1.5 px-3 rounded flex items-center justify-center transition-colors"
+                >
+                  <XCircle size={14} className="mr-1.5" /> Remove from Sale
                 </button>
               )}
           </div>

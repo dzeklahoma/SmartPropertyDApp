@@ -3,6 +3,7 @@ import { Search, Filter, AlertCircle } from "lucide-react";
 import PropertyList from "../components/common/PropertyList";
 import { PropertyData } from "../types/property.types";
 import { useWeb3 } from "../context/Web3Context";
+import { useNavigate } from "react-router-dom";
 
 type RawPropertyDetails = [
   string, // id (as string from BigNumber)
@@ -22,7 +23,7 @@ const Marketplace: React.FC = () => {
     propertyFactoryContract,
     getPropertyContract,
   } = useWeb3();
-
+  const navigate = useNavigate();
   const [properties, setProperties] = useState<PropertyData[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<PropertyData[]>(
     []
@@ -165,6 +166,35 @@ const Marketplace: React.FC = () => {
     }
   };
 
+  const handleRemoveFromSale = async (property: PropertyData) => {
+    try {
+      if (!isConnected || !account || !web3) {
+        alert("Please connect your wallet first");
+        return;
+      }
+
+      const propertyContract = getPropertyContract(property.contractAddress);
+      if (!propertyContract) {
+        throw new Error("Failed to get property contract");
+      }
+
+      // Call the removeFromSale method on the property contract
+      await propertyContract.methods.removeFromSale().send({ from: account });
+
+      alert("Property removed from sale successfully!");
+
+      // Refresh the property list
+      await fetchAllProperties();
+    } catch (error) {
+      console.error("Error removing property from sale:", error);
+      alert("Failed to remove property from sale. Please try again.");
+    }
+  };
+
+  const handleViewDetails = (property: PropertyData) => {
+    navigate(`/property/${property.id}`);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">
@@ -253,6 +283,8 @@ const Marketplace: React.FC = () => {
             : "No properties are currently available for sale."
         }
         onBuy={handleBuyProperty}
+        onViewDetails={handleViewDetails}
+        onRemoveFromSale={handleRemoveFromSale} // <-- passed here
       />
     </div>
   );
