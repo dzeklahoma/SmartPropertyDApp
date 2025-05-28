@@ -5,15 +5,18 @@ import { PropertyRegistrationData } from "../../types/property.types";
 interface PropertyRegistrationFormProps {
   onSubmit: (data: PropertyRegistrationData) => void;
   isSubmitting: boolean;
+  initialData?: PropertyRegistrationData;
+  onClose?: () => void;
 }
 
 const PropertyRegistrationForm: React.FC<PropertyRegistrationFormProps> = ({
   onSubmit,
   isSubmitting,
+  initialData,
 }) => {
   const [formData, setFormData] = useState<PropertyRegistrationData>({
-    address: "",
-    details: "",
+    address: initialData?.address || "",
+    details: initialData?.details || "",
   });
 
   const [images, setImages] = useState<File[]>([]);

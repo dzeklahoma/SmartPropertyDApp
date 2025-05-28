@@ -1,15 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { Plus, RefreshCw, AlertCircle, Building2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import PropertyList from "../components/common/PropertyList";
 import PropertyRegistrationForm from "../components/forms/PropertyRegistrationForm";
 import SellPropertyModal from "../components/modals/SellPropertyModal";
+import EditPropertyModal from "../components/modals/EditPropertyModal";
 import {
   PropertyData,
   PropertyRegistrationData,
 } from "../types/property.types";
 import { useWeb3 } from "../context/Web3Context";
 
+type RawPropertyDetails = [
+  string, // id (as string from BigNumber)
+  string, // address
+  string, // details
+  string, // price (as string from BigNumber)
+  string, // owner address
+  boolean, // isVerified
+  boolean // isForSale
+];
+
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const {
     web3,
     account,
@@ -25,6 +38,9 @@ const Dashboard: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [propertyForSale, setPropertyForSale] = useState<PropertyData | null>(
+    null
+  );
+  const [propertyToEdit, setPropertyToEdit] = useState<PropertyData | null>(
     null
   );
   const [error, setError] = useState<string | null>(null);
@@ -44,18 +60,21 @@ const Dashboard: React.FC = () => {
 
       if (!propertyFactoryContract || !account) return;
 
-      // Get property IDs owned by the current user
       const propertyIds = await propertyFactoryContract.methods
         .getPropertiesByOwner(account)
         .call();
 
-      // Get property details for each ID
+      console.log("Property IDs for account:", account, propertyIds);
+
       const propertiesData: PropertyData[] = [];
 
       for (const id of propertyIds) {
         const propertyAddress = await propertyFactoryContract.methods
           .getPropertyById(id)
           .call();
+
+        console.log(`ID ${id} => Address: ${propertyAddress}`);
+
         if (
           propertyAddress &&
           propertyAddress !== "0x0000000000000000000000000000000000000000"
@@ -66,6 +85,8 @@ const Dashboard: React.FC = () => {
             const details = await propertyContract.methods
               .getPropertyDetails()
               .call();
+
+            console.log("Details:", details);
 
             propertiesData.push({
               id: parseInt(details[0]),
@@ -98,15 +119,11 @@ const Dashboard: React.FC = () => {
         throw new Error("Wallet not connected or contract not available");
       }
 
-      // Call the createProperty function on the smart contract
       await propertyFactoryContract.methods
         .createProperty(data.address, data.details)
         .send({ from: account });
 
-      // Refresh the property list
       await fetchMyProperties();
-
-      // Hide the form
       setShowRegistrationForm(false);
     } catch (error) {
       console.error("Error registering property:", error);
@@ -118,6 +135,10 @@ const Dashboard: React.FC = () => {
 
   const handleSellProperty = async (propertyId: number, price: string) => {
     try {
+      if (!price || parseFloat(price) <= 0) {
+        throw new Error("Price must be greater than 0 ETH");
+      }
+
       const property = myProperties.find((p) => p.id === propertyId);
       if (!property || !account) {
         throw new Error("Property not found or wallet not connected");
@@ -128,23 +149,89 @@ const Dashboard: React.FC = () => {
         throw new Error("Failed to get property contract");
       }
 
-      // Convert price from ETH to Wei
       const priceInWei = web3?.utils.toWei(price, "ether");
 
-      // Call the setForSale function on the property contract
       await propertyContract.methods
         .setForSale(priceInWei)
         .send({ from: account });
 
-      // Refresh the property list
       await fetchMyProperties();
-
-      // Close the modal
       setPropertyForSale(null);
     } catch (error) {
       console.error("Error listing property for sale:", error);
-      throw error;
+      if (error instanceof Error) {
+        alert("Failed to list property for sale: " + error.message);
+      } else {
+        alert("Failed to list property for sale: An unknown error occurred.");
+      }
     }
+  };
+
+  const handleEditProperty = async (
+    propertyId: number,
+    updatedData: PropertyRegistrationData
+  ) => {
+    try {
+      const property = myProperties.find((p) => p.id === propertyId);
+      if (!property || !account) {
+        throw new Error("Property not found or wallet not connected");
+      }
+
+      if (property.isVerified) {
+        throw new Error("Verified properties cannot be edited");
+      }
+
+      const propertyContract = getPropertyContract(property.contractAddress);
+      if (!propertyContract) {
+        throw new Error("Failed to get property contract");
+      }
+
+      await propertyContract.methods
+        .updatePropertyDetails(updatedData.details)
+        .send({ from: account });
+
+      await fetchMyProperties();
+      setPropertyToEdit(null);
+    } catch (error) {
+      console.error("Error updating property:", error);
+      alert(
+        "Failed to update property: " +
+          (error instanceof Error ? error.message : "An unknown error occurred")
+      );
+    }
+  };
+
+  const handleBuyProperty = async (property: PropertyData) => {
+    try {
+      if (!account) throw new Error("Wallet not connected");
+      const propertyContract = getPropertyContract(property.contractAddress);
+      if (!propertyContract) throw new Error("Property contract not found");
+
+      await propertyContract.methods.buyProperty().send({
+        from: account,
+        value: property.price,
+      });
+
+      await fetchMyProperties();
+    } catch (error) {
+      console.error("Failed to buy property:", error);
+      alert(
+        "Failed to buy property: " +
+          (error instanceof Error ? error.message : "An unknown error occurred")
+      );
+    }
+  };
+
+  const handleViewDetails = (property: PropertyData) => {
+    navigate(`/property/${property.id}`);
+  };
+
+  const handleEditClick = (property: PropertyData) => {
+    setPropertyToEdit(property);
+  };
+
+  const handleSellClick = (property: PropertyData) => {
+    setPropertyForSale(property);
   };
 
   const renderContent = () => {
@@ -211,6 +298,10 @@ const Dashboard: React.FC = () => {
         <PropertyList
           title="My Properties"
           properties={myProperties}
+          onBuy={handleBuyProperty}
+          onViewDetails={handleViewDetails}
+          onEdit={handleEditClick}
+          onSell={handleSellClick}
           showActions={true}
           isLoading={isLoading}
           emptyMessage="You don't have any registered properties yet. Use the 'Register Property' button to add one."
@@ -223,11 +314,19 @@ const Dashboard: React.FC = () => {
             onSubmit={handleSellProperty}
           />
         )}
+
+        {propertyToEdit && (
+          <EditPropertyModal
+            property={propertyToEdit}
+            onClose={() => setPropertyToEdit(null)}
+            onSubmit={handleEditProperty}
+          />
+        )}
       </>
     );
   };
 
-  return <div className="container mx-auto px-4 py-8">{renderContent()}</div>;
+  return <div className="max-w-7xl mx-auto p-4">{renderContent()}</div>;
 };
 
 export default Dashboard;

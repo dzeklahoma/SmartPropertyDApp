@@ -100,8 +100,22 @@ const AdminPanel: React.FC = () => {
 
   const handleVerifyProperty = async (property: PropertyData) => {
     try {
-      if (!isConnected || !account || !isAdmin) {
+      if (!isConnected || !account) {
         toast.error("You must be connected as an admin to verify properties");
+        return;
+      }
+      if (!propertyFactoryContract) {
+        toast.error("Property factory contract is not initialized");
+        return;
+      }
+
+      // Fetch the on-chain government/admin address
+      const governmentAddress = await propertyFactoryContract.methods
+        .governmentAddress()
+        .call();
+
+      if (account.toLowerCase() !== governmentAddress.toLowerCase()) {
+        toast.error("Connected account is not the government/admin address");
         return;
       }
 

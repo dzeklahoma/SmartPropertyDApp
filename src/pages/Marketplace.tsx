@@ -4,6 +4,16 @@ import PropertyList from "../components/common/PropertyList";
 import { PropertyData } from "../types/property.types";
 import { useWeb3 } from "../context/Web3Context";
 
+type RawPropertyDetails = [
+  string, // id (as string from BigNumber)
+  string, // address
+  string, // details
+  string, // price (as string from BigNumber)
+  string, // owner address
+  boolean, // isVerified
+  boolean // isForSale
+];
+
 const Marketplace: React.FC = () => {
   const {
     web3,
@@ -45,9 +55,9 @@ const Marketplace: React.FC = () => {
       if (!propertyFactoryContract) return;
 
       // Get all property contract addresses
-      const propertyAddresses: any[] = await propertyFactoryContract.methods
+      const propertyAddresses: any[] = (await propertyFactoryContract.methods
         .getAllProperties()
-        .call();
+        .call()) as RawPropertyDetails;
 
       // Get property details for each address
       const propertiesData: PropertyData[] = [];
@@ -60,9 +70,9 @@ const Marketplace: React.FC = () => {
           const propertyContract = getPropertyContract(address);
 
           if (propertyContract) {
-            const details: [] = await propertyContract.methods
+            const details = (await propertyContract.methods
               .getPropertyDetails()
-              .call();
+              .call()) as RawPropertyDetails;
 
             propertiesData.push({
               id: parseInt(details[0]),
@@ -242,6 +252,7 @@ const Marketplace: React.FC = () => {
             ? "No properties match your search criteria."
             : "No properties are currently available for sale."
         }
+        onBuy={handleBuyProperty}
       />
     </div>
   );

@@ -18,7 +18,7 @@ contract PropertyFactory {
     
     // Events
     event PropertyContractCreated(uint256 propertyId, address propertyContract, address owner);
-    
+
     constructor() {
         governmentAddress = msg.sender; // Initially, the deployer is the government
         propertyIdCounter = 1;
@@ -90,13 +90,13 @@ contract PropertyFactory {
     }
     
     // Add property to owner's list (called when property is transferred)
-    function addPropertyToOwner(uint256 _propertyId, address _newOwner) external {
+    function addPropertyToOwner(uint256 _propertyId, address _newOwner) public {
         require(properties[_propertyId] == msg.sender, "Only the property contract can call this function");
         ownerProperties[_newOwner].push(_propertyId);
     }
     
     // Remove property from owner's list (called when property is transferred)
-    function removePropertyFromOwner(uint256 _propertyId, address _previousOwner) external {
+    function removePropertyFromOwner(uint256 _propertyId, address _previousOwner) public {
         require(properties[_propertyId] == msg.sender, "Only the property contract can call this function");
         
         uint256[] storage ownerProps = ownerProperties[_previousOwner];
@@ -108,5 +108,22 @@ contract PropertyFactory {
                 break;
             }
         }
+    }
+
+    // Notify factory about ownership transfer
+    // Called by Property contract when ownership changes
+    function notifyOwnershipTransfer(
+        uint256 _propertyId,
+        address _previousOwner,
+        address _newOwner
+    ) external {
+        // Ensure only the Property contract owning the ID can call this
+        require(properties[_propertyId] == msg.sender, "Unauthorized caller");
+
+        // Remove property from previous owner
+        removePropertyFromOwner(_propertyId, _previousOwner);
+
+        // Add property to new owner
+        addPropertyToOwner(_propertyId, _newOwner);
     }
 }

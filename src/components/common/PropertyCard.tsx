@@ -91,37 +91,35 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         {showActions && (
           <div className="flex flex-wrap gap-2 mt-2">
             <button
-              onClick={() => onViewDetails && onViewDetails(property)}
+              onClick={() => onViewDetails?.(property)}
               className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm py-1.5 px-3 rounded flex items-center justify-center transition-colors"
             >
               <Eye size={14} className="mr-1.5" /> Details
             </button>
 
-            {!property.isVerified &&
-              property.owner === "currentUserAddress" && (
-                <button
-                  onClick={() => onEdit && onEdit(property)}
-                  className="flex-1 bg-amber-100 hover:bg-amber-200 text-amber-800 text-sm py-1.5 px-3 rounded flex items-center justify-center transition-colors"
-                >
-                  <Edit size={14} className="mr-1.5" /> Edit
-                </button>
-              )}
+            {!property.isVerified && property.owner === account && (
+              <button
+                onClick={() => onEdit?.(property)}
+                className="flex-1 bg-amber-100 hover:bg-amber-200 text-amber-800 text-sm py-1.5 px-3 rounded flex items-center justify-center transition-colors"
+              >
+                <Edit size={14} className="mr-1.5" /> Edit
+              </button>
+            )}
 
-            {!property.isVerified &&
-              property.owner !== "currentUserAddress" && (
-                <button
-                  onClick={() => onVerify && onVerify(property)}
-                  className="flex-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-sm py-1.5 px-3 rounded flex items-center justify-center transition-colors"
-                >
-                  <CheckCircle size={14} className="mr-1.5" /> Verify
-                </button>
-              )}
+            {!property.isVerified && property.owner !== account && (
+              <button
+                onClick={() => onVerify && onVerify(property)}
+                className="flex-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-sm py-1.5 px-3 rounded flex items-center justify-center transition-colors"
+              >
+                <CheckCircle size={14} className="mr-1.5" /> Verify
+              </button>
+            )}
 
             {property.isVerified &&
-              property.owner === "currentUserAddress" &&
+              property.owner === account &&
               !property.isForSale && (
                 <button
-                  onClick={() => onSell && onSell(property)}
+                  onClick={() => onSell?.(property)}
                   className="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-800 text-sm py-1.5 px-3 rounded flex items-center justify-center transition-colors"
                 >
                   <DollarSign size={14} className="mr-1.5" /> Sell
@@ -130,9 +128,9 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
 
             {property.isVerified &&
               property.isForSale &&
-              property.owner !== "currentUserAddress" && (
+              property.owner !== account && (
                 <button
-                  onClick={() => onBuy && onBuy(property)}
+                  onClick={() => onBuy?.(property)}
                   className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-1.5 px-3 rounded flex items-center justify-center transition-colors"
                 >
                   <DollarSign size={14} className="mr-1.5" /> Buy Now

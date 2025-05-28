@@ -9,24 +9,24 @@ import Web3 from "web3";
 import { Contract } from "web3-eth-contract";
 import PropertyFactoryJSON from "../contracts/PropertyFactory.json";
 import PropertyJSON from "../contracts/Property.json";
+import type { AbiItem } from "web3-utils";
 
-type PropertyFactoryAbi = typeof PropertyFactoryJSON.abi;
-type PropertyAbi = typeof PropertyJSON.abi;
+//type PropertyFactoryAbi = typeof PropertyFactoryJSON.abi;
+//type PropertyAbi = typeof PropertyJSON.abi;
 
 interface Web3ContextType {
   web3: Web3 | null;
   account: string | null;
   isConnected: boolean;
   isAdmin: boolean;
-  propertyFactoryContract: Contract<PropertyFactoryAbi> | null;
+  propertyFactoryContract: Contract | null;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
-  getPropertyContract: (address: string) => Contract<PropertyFactoryAbi> | null;
+  getPropertyContract: (address: string) => Contract | null;
   loading: boolean;
   error: string | null;
 }
 
-// Replace these with your actual deployed contract addresses and RPC URL
 const PROPERTY_FACTORY_ADDRESS = import.meta.env.VITE_PROPERTY_FACTORY_ADDRESS;
 const SEPOLIA_RPC_URL = import.meta.env.VITE_SEPOLIA_RPC_URL;
 const GOVERNMENT_ADDRESS = import.meta.env.VITE_GOVERNMENT_ADDRESS;
@@ -45,7 +45,7 @@ export const Web3Provider = ({ children }: { children: ReactNode }) => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [propertyFactoryContract, setPropertyFactoryContract] =
-    useState<Contract<PropertyFactoryAbi> | null>(null);
+    useState<Contract | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -125,17 +125,18 @@ export const Web3Provider = ({ children }: { children: ReactNode }) => {
     userAccount: string
   ) => {
     try {
-      // Initialize PropertyFactory contract
       const propertyFactoryContract = new web3Instance.eth.Contract(
-        PropertyFactoryJSON.abi as PropertyFactoryAbi,
+        PropertyFactoryJSON.abi as AbiItem[],
         PROPERTY_FACTORY_ADDRESS
       );
       setPropertyFactoryContract(propertyFactoryContract);
 
-      // Check if user is admin
-      setIsAdmin(
-        userAccount.toLowerCase() === GOVERNMENT_ADDRESS.toLowerCase()
-      );
+      // Fetch the government address from contract on-chain
+      const govAddressOnChain = await propertyFactoryContract.methods
+        .governmentAddress()
+        .call();
+
+      setIsAdmin(userAccount.toLowerCase() === govAddressOnChain.toLowerCase());
     } catch (error) {
       console.error("Error initializing contracts:", error);
       setError(
@@ -180,9 +181,7 @@ export const Web3Provider = ({ children }: { children: ReactNode }) => {
   };
 
   // Get property contract instance
-  const getPropertyContract = (
-    address: string
-  ): Contract<PropertyFactoryAbi> | null => {
+  const getPropertyContract = (address: string): Contract | null => {
     if (!web3) return null;
 
     try {
@@ -210,7 +209,7 @@ export const Web3Provider = ({ children }: { children: ReactNode }) => {
     <Web3Context.Provider value={contextValue}>{children}</Web3Context.Provider>
   );
 };
-
+export { Web3Context };
 export const useWeb3 = (): Web3ContextType => {
   const context = useContext(Web3Context);
   if (context === undefined) {
